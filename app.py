@@ -1,6 +1,7 @@
 from bigcommerce.api import BigcommerceApi
 import dotenv
 import flask
+import jwt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 import os
@@ -274,7 +275,7 @@ def remove_user():
 #
 # App interface
 #
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
     # Lookup user
     storeuser = StoreUser.query.filter_by(id=flask.session['storeuserid']).first()
@@ -301,13 +302,22 @@ def index():
     return render('index.html', context)
 
 
-@app.route('/instructions')
+# Instructions route for Heroku installations
+@app.route('/instructions', methods=['GET'])
 def instructions():
     if not app.config['DEBUG']:
         return "Forbidden - instructions only visible in debug mode"
     context = dict()
     return render('instructions.html', context)
 
+
+# Decodes the "current customer" JWT for applications that need this for the storefront
+@app.route('/customer', methods=['POST'])
+def current_customer():
+    customer_jwt = flask.request.data
+    current_customer = jwt.decode(customer_jwt, client_secret(), algorithms=['HS512'])
+    print(current_customer)
+    return 'JWT successfully processed', 200
 
 if __name__ == "__main__":
     db.create_all()
